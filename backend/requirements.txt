@@ -1,0 +1,7 @@
+Flask==3.1.*
+Flask-SQLAlchemy==3.1.*
+Flask-Migrate==4.*
+Flask-Limiter==4.*
+psycopg[binary]==3.3.*
+python-dotenv==1.*
+gunicorn==26.*

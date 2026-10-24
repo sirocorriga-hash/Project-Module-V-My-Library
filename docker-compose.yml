@@ -1,0 +1,40 @@
+# Everything with one command:  docker compose up --build   ->  http://localhost:8000
+# Needs a .env file next to this one: create it with  sh scripts/setup.sh  (Windows: scripts\setup.ps1).
+# Only the database:  docker compose up db   (then run Flask and Vite on your computer, see AVVIO.md)
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: library
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: library
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"   # reachable from this computer only, for Flask run outside Docker
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U library"]
+      interval: 5s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"     # reachable from this machine only; put a TLS proxy in front to expose it
+    environment:
+      DATABASE_URL: postgresql+psycopg://library:${POSTGRES_PASSWORD}@db:5432/library
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      APP_URL: ${APP_URL:-http://localhost:8000}
+      MAIL_SERVER: ${MAIL_SERVER:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-My Library <no-reply@localhost>}
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
